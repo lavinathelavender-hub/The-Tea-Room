@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Tea Room Gallery Tracker</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
+:root {
+    --bg:#eef3ef;
+    --bg-soft:#e2ece5;
+    --card:#fffdf8;
+    --text:#33483e;
+    --muted:#718078;
+    --heading:#173d31;
+    --border:#cddbd1;
+    --r30:#315f52;
+    --r28:#678e7e;
+    --r25:#a87855;
+    --shadow:0 18px 42px rgba(28,61,49,.13);
+    --shine:#c49a45;
+    --shine-soft:rgba(196,154,69,.20);
+    --accent:#295848;
+    --accent-2:#a87855;
+}
+*{box-sizing:border-box}
+body{
+    margin:0;
+    font-family:"DM Sans","Segoe UI",sans-serif;
+    background:
+      linear-gradient(rgba(238,243,239,.92),rgba(238,243,239,.96)),
+      repeating-linear-gradient(45deg,transparent 0 24px,rgba(41,88,72,.035) 24px 25px),
+      var(--bg);
+    color:var(--text);
+    padding:30px;
+}
+header{
+    max-width:1250px;margin:0 auto 26px;text-align:center;padding:34px 22px;
+    border:1px solid rgba(196,154,69,.48);border-radius:8px;
+    background:linear-gradient(135deg,#173d31,#295848 65%,#3b6959);
+    box-shadow:var(--shadow);position:relative;overflow:hidden
+}
+header:before,header:after{content:"";position:absolute;width:150px;height:150px;border:1px solid rgba(255,255,255,.12);transform:rotate(45deg)}
+header:before{left:-75px;top:-75px} header:after{right:-75px;bottom:-75px}
+h1{margin:0;font-family:"Playfair Display",Georgia,serif;font-size:clamp(2rem,4vw,3.5rem);color:#fffaf0;letter-spacing:.3px}
+.subtitle{margin-top:10px;color:var(--muted);font-size:1rem}
+.toolbar{max-width:1250px;margin:0 auto 22px;display:grid;grid-template-columns:1.5fr 180px 220px 220px 210px;gap:12px}
+input,select{width:100%;border:1px solid var(--border);border-radius:8px;padding:13px 14px;font:inherit;background:rgba(255,253,248,.96);color:var(--text);box-shadow:0 5px 14px rgba(28,61,49,.06);outline:none}
+input:focus,select:focus{border-color:var(--shine);box-shadow:0 0 0 3px var(--shine-soft)}
+.stats{max-width:1250px;margin:0 auto 24px;display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.stat{background:var(--card);border:1px solid var(--border);border-top:4px solid var(--accent);border-radius:8px;padding:17px;text-align:center;box-shadow:var(--shadow)}
+.stat strong{display:block;font-family:"Playfair Display",Georgia,serif;font-size:1.85rem;color:var(--heading)}
+.stat span{color:var(--muted);font-size:.88rem;font-weight:600}
+.extra-panels{max-width:1250px;margin:0 auto 24px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;box-shadow:var(--shadow)}
+.panel h2{margin:0 0 13px;color:var(--heading);font-family:"Playfair Display",Georgia,serif;font-size:1.25rem}
+.chip-list{display:flex;flex-wrap:wrap;gap:8px}.chip{background:var(--bg-soft);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:.84rem;font-weight:700}
+.chip.shiny-chip{background:#f7efd9;border-color:var(--shine);color:#74581d}
+.owner-results{display:grid;gap:8px;margin-top:12px;max-height:260px;overflow:auto}.owner-row{background:#f5f7f3;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:6px;padding:9px 11px;font-size:.92rem}.owner-row.has-attribute-row{background:#fbf5e7;border:1px solid var(--shine);border-left:4px solid var(--shine);box-shadow:0 0 0 3px var(--shine-soft);font-weight:700}
+.grid{max-width:1250px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:20px}.member-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;box-shadow:var(--shadow);position:relative;overflow:hidden}.member-card:before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,var(--accent),var(--shine),var(--accent-2))}.member-card.member-has-attributes{border-color:rgba(196,154,69,.8);box-shadow:var(--shadow),0 0 0 3px var(--shine-soft)}
+.member-header{position:relative;z-index:1;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin:4px 0 13px}.member-name{margin:0;font-family:"Playfair Display",Georgia,serif;font-size:1.35rem;color:var(--heading)}.count-pill{white-space:nowrap;background:var(--bg-soft);color:var(--heading);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:.78rem;font-weight:800}.attribute-summary{position:relative;z-index:1;display:inline-flex;align-items:center;gap:6px;margin:0 0 12px;background:#f7efd9;color:#74581d;border:1px solid var(--shine);border-radius:6px;padding:7px 10px;font-size:.8rem;font-weight:900}
+ul{position:relative;z-index:1;list-style:none;padding:0;margin:0;display:grid;gap:8px}li{display:flex;align-items:center;gap:9px;background:#f7f8f5;border:1px solid #dce5de;padding:8px 10px;border-radius:6px;font-size:.93rem;min-height:40px}li.has-attribute{position:relative;background:#fbf5e7;border:2px solid var(--shine);box-shadow:0 0 0 3px var(--shine-soft);margin-top:5px}.attribute-badge{position:absolute;top:-11px;left:-9px;background:linear-gradient(135deg,#ad8030,#d4b66d);color:white;border:2px solid white;border-radius:5px;padding:3px 7px;font-size:.7rem;font-weight:900;box-shadow:0 4px 10px rgba(92,67,20,.25);z-index:2}.attribute-label{margin-left:auto;background:#f7efd9;color:#74581d;border:1px solid var(--shine);border-radius:5px;padding:3px 7px;font-size:.7rem;font-weight:900;white-space:nowrap}.tag{min-width:38px;text-align:center;color:white;padding:4px 8px;border-radius:5px;font-weight:900;font-size:.76rem;box-shadow:inset 0 -2px 0 rgba(0,0,0,.1)}.r30{background:var(--r30)}.r28{background:var(--r28)}.r25{background:var(--r25)}.r23{background:#7a6d8d}.r21{background:#80935f}
+.empty{max-width:1250px;margin:20px auto;text-align:center;color:var(--muted);display:none}footer{max-width:1250px;margin:34px auto 0;text-align:center;color:var(--muted);font-size:.9rem}.legend{max-width:1250px;margin:0 auto 18px;color:var(--muted);text-align:center;font-size:.92rem}.legend strong{color:#74581d}
+.admin-shell{max-width:1250px;margin:0 auto 24px}.admin-toggle{width:100%;padding:14px;border:1px solid #325e50;border-radius:8px;background:linear-gradient(135deg,#173d31,#376655);color:#fffaf0;font:inherit;font-weight:900;cursor:pointer;box-shadow:var(--shadow)}.admin-login,.admin-panel{margin-top:12px;padding:18px;background:rgba(255,253,248,.98);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow)}.admin-login{display:grid;grid-template-columns:1fr auto;gap:10px}.admin-panel,.admin-view{display:none}.admin-panel.open,.admin-view.active{display:block}.admin-panel h2{font-family:"Playfair Display",Georgia,serif;color:var(--heading)}.admin-tabs,.admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.admin-tab,.admin-btn{border:0;border-radius:6px;padding:11px 14px;font:inherit;font-weight:800;cursor:pointer}.admin-tab{background:var(--bg-soft);color:var(--text)}.admin-tab.active,.admin-btn{background:linear-gradient(135deg,#295848,#497a68);color:white}.admin-btn.danger{background:#9a514e}.admin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:end}.admin-list{display:grid;gap:10px;margin-top:12px}.admin-member{border:1px solid var(--border);border-left:5px solid var(--accent);border-radius:7px;padding:12px;background:#fafbf8}.admin-head{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}.admin-flower{display:grid;grid-template-columns:1fr 80px 80px auto auto;gap:7px;margin-top:7px}.admin-message{min-height:20px;font-weight:800;color:#376655}.admin-label{font-size:.78rem;color:var(--muted);font-weight:800}
+.toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:grid;gap:10px;max-width:min(360px,calc(100vw - 40px))}.toast{padding:13px 16px;border-radius:7px;background:#e7f1eb;color:#285744;border:1px solid #bad4c5;box-shadow:0 12px 28px rgba(28,61,49,.18);font-weight:800;opacity:0;transform:translateY(-10px);transition:opacity .2s ease,transform .2s ease}.toast.show{opacity:1;transform:translateY(0)}.toast.error{background:#faeceb;color:#914845;border-color:#e7bfbd}.toast.warning{background:#fbf3df;color:#806221;border-color:#e2ce98}
+@media(max-width:1100px){.toolbar{grid-template-columns:1fr 1fr}.extra-panels{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:760px){body{padding:14px}.toolbar,.stats{grid-template-columns:1fr}.member-header{flex-direction:column}.attribute-label{display:none}.admin-grid,.admin-flower,.admin-head{grid-template-columns:1fr 1fr}.admin-head input{grid-column:1/-1}header{padding:27px 16px}}
+</style>
+</head>
+<body>
+<header>
+<h1>☕ The Tea Room Gallery Tracker ☕</h1>
+
+</header>
+<section class="toolbar">
+<input id="searchInput" placeholder="Search member or flower name..." type="text"/>
+<select id="pointFilter">
+<option value="all">All points</option><option value="30">30 point flowers</option><option value="28">28 point flowers</option><option value="25">25 point flowers</option><option value="23">23 point flowers</option><option value="21">21 point flowers</option>
+</select>
+<select id="attributeFilter">
+<option value="all">All flowers</option>
+<option value="hasAttributes">Has attributes only</option>
+<option value="noAttributes">No attributes only</option>
+</select>
+<select id="memberSort">
+<option value="original">Members: Original order</option>
+<option value="nameAsc">Members: A-Z</option>
+<option value="nameDesc">Members: Z-A</option>
+<option value="countDesc">Most flowers first</option>
+<option value="countAsc">Fewest flowers first</option>
+<option value="bonusDesc">Highest bonus total</option>
+</select>
+<select id="flowerSort">
+<option value="pointsDesc">Flowers: Highest points first</option>
+<option value="pointsAsc">Flowers: Lowest points first</option>
+<option value="nameAsc">Flowers: A-Z</option>
+<option value="nameDesc">Flowers: Z-A</option>
+<option value="bonusDesc">Flowers: Bonus first</option>
+</select>
+</section>
+<section class="stats">
+<div class="stat"><strong id="memberCount">0</strong><span>Total Members</span></div>
+<div class="stat"><strong id="flowerCount">0</strong><span>Total Listed Flowers</span></div>
+<div class="stat"><strong id="uniqueCount">0</strong><span>Unique Flower Names</span></div>
+<div class="stat"><strong id="attributeCount">0</strong><span>Flowers With Attributes</span></div>
+<div class="stat"><strong id="topCount">0</strong><span>Highest Collection Count</span></div>
+</section>
+<p class="legend">✨ Flowers with extra attributes have a <strong>gold shiny outline</strong> and a <strong>+ bonus badge</strong> in the top-left corner.</p>
+<section class="extra-panels">
+<div class="panel">
+<h2>🌷 Most Common Flowers</h2>
+<div class="chip-list" id="commonFlowers"></div>
+</div>
+
+<div class="panel">
+<h2>🔎 Flower Ownership Lookup</h2>
+<input id="ownerLookup" placeholder="Type a flower name to see who has it..." type="text"/>
+<div class="owner-results" id="ownerResults"></div>
+</div>
+
+</section>
+<section class="admin-shell"><button id="adminToggle" class="admin-toggle">🔐 Open Admin Section</button><div id="adminLogin" class="admin-login" hidden><input id="adminPassword" type="password" placeholder="Enter admin password"><button id="adminUnlock" class="admin-btn">Unlock</button></div><div id="adminPanel" class="admin-panel"><h2>🗝️ The Tea Room Admin</h2><div class="admin-tabs"><button class="admin-tab active" data-view="member">Add Member</button><button class="admin-tab" data-view="flower">Add Flower</button><button class="admin-tab" data-view="manage">Manage Records</button></div><div id="view-member" class="admin-view active"><div class="admin-grid"><input id="newMember" placeholder="New member name"><button id="addMember" class="admin-btn">Add Member</button></div></div><div id="view-flower" class="admin-view"><div class="admin-grid"><select id="memberSelect"></select><div><div class="admin-label">Flower name</div><input id="newFlower" list="flowerSuggestions" placeholder="Start typing a flower name"><datalist id="flowerSuggestions"></datalist></div><select id="newPoints"><option>30</option><option>28</option><option>25</option><option>23</option><option>21</option></select><input id="newBonus" type="number" min="0" value="0" title="Attribute bonus"><button id="addFlower" class="admin-btn">Add Flower</button></div></div><div id="view-manage" class="admin-view"><div id="adminList" class="admin-list"></div></div><div class="admin-actions"><button id="adminLock" class="admin-btn">Lock</button><button id="resetData" class="admin-btn danger">Reset Changes</button></div><div id="adminMessage" class="admin-message"></div></div></section><div id="toastContainer" class="toast-container" aria-live="polite"></div><main class="grid" id="memberGrid"></main>
+<p class="empty" id="emptyMessage">No members found matching your search.</p>
+<footer>Made for The Tea Room guild 🫖✨</footer>
+<script>
+const SUPABASE_URL = "INSERT_YOUR_SUPABASE_PROJECT_URL_HERE";
+const SUPABASE_KEY = "INSERT_YOUR_SUPABASE_PUBLISHABLE_KEY_HERE";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const members = [];
+const attributeBonuses = [];
+const ADMIN_PASSWORD = "TeaRoomAdmin";
+
+const grid = document.getElementById("memberGrid");
+const searchInput = document.getElementById("searchInput");
+const pointFilter = document.getElementById("pointFilter");
+const attributeFilter = document.getElementById("attributeFilter");
+const memberSort = document.getElementById("memberSort");
+const flowerSort = document.getElementById("flowerSort");
+const emptyMessage = document.getElementById("emptyMessage");
+const ownerLookup = document.getElementById("ownerLookup");
+const ownerResults = document.getElementById("ownerResults");
+
+function normalize(text) {
+    return String(text).toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function showToast(text, type = "success") {
+    const box = document.getElementById("toastContainer");
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.textContent = (type === "success" ? "✅ " : type === "error" ? "❌ " : "⚠️ ") + text;
+    box.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add("show"));
+    setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 250);
+    }, 3500);
+}
+
+function msg(text, type = "success") {
+    document.getElementById("adminMessage").textContent = text;
+    showToast(text, type);
+}
+
+function databaseError(action, error) {
+    console.error(action, error);
+    msg(`${action}: ${error?.message || "Unknown database error"}`, "error");
+}
+
+function parseNotes(value) {
+    if (Array.isArray(value)) return value.filter(Boolean);
+    if (!value) return [];
+    return String(value).split("|").map(x => x.trim()).filter(Boolean);
+}
+
+async function loadData(showFailure = true) {
+    const { data: memberRows, error: memberError } = await supabaseClient
+        .from("members")
+        .select("id,name,notes")
+        .order("id", { ascending: true });
+
+    if (memberError) {
+        if (showFailure) databaseError("Could not load members", memberError);
+        return false;
+    }
+
+    const { data: flowerRows, error: flowerError } = await supabaseClient
+        .from("flowers")
+        .select("id,member_id,flower_name,points,bonus")
+        .order("id", { ascending: true });
+
+    if (flowerError) {
+        if (showFailure) databaseError("Could not load flowers", flowerError);
+        return false;
+    }
+
+    const grouped = new Map((memberRows || []).map(row => [row.id, {
+        id: row.id,
+        name: row.name,
+        notes: parseNotes(row.notes),
+        flowers: []
+    }]));
+
+    attributeBonuses.splice(0);
+    for (const row of flowerRows || []) {
+        const member = grouped.get(row.member_id);
+        if (!member) continue;
+        member.flowers.push([Number(row.points), row.flower_name, row.id]);
+        if (Number(row.bonus) > 0) {
+            attributeBonuses.push({
+                member: member.name,
+                flower: row.flower_name,
+                bonus: Number(row.bonus),
+                flowerId: row.id
+            });
+        }
+    }
+
+    members.splice(0, members.length, ...grouped.values());
+    refreshAll();
+    return true;
+}
+
+function refreshAll() {
+    renderMembers();
+    renderCommonFlowers();
+    renderOwnerLookup();
+    refreshSelects();
+    renderAdmin();
+}
+
+function refreshSelects() {
+    const select = document.getElementById("memberSelect");
+    const oldValue = select.value;
+    select.innerHTML = "";
+    [...members].sort((a, b) => a.name.localeCompare(b.name)).forEach(member => {
+        select.add(new Option(member.name, String(member.id)));
+    });
+    if ([...select.options].some(option => option.value === oldValue)) select.value = oldValue;
+
+    const datalist = document.getElementById("flowerSuggestions");
+    datalist.innerHTML = "";
+    const names = [...new Set(members.flatMap(member => member.flowers.map(flower => flower[1])))].sort((a, b) => a.localeCompare(b));
+    names.forEach(name => {
+        const option = document.createElement("option");
+        option.value = name;
+        datalist.appendChild(option);
+    });
+}
+
+async function addMember() {
+    const input = document.getElementById("newMember");
+    const name = input.value.trim();
+    if (!name) return msg("Enter a member name.", "error");
+    if (members.some(member => normalize(member.name) === normalize(name))) return msg("A member with that name already exists.", "error");
+
+    const { error } = await supabaseClient.from("members").insert({ name, notes: null });
+    if (error) return databaseError("Could not add member", error);
+    input.value = "";
+    await loadData();
+    msg(`Added ${name}.`);
+}
+
+async function renameMember(member, newName) {
+    newName = newName.trim();
+    if (!newName) return msg("Member name cannot be blank.", "error");
+    if (members.some(item => item.id !== member.id && normalize(item.name) === normalize(newName))) return msg("A member with that name already exists.", "error");
+
+    const oldName = member.name;
+    const { error } = await supabaseClient.from("members").update({ name: newName }).eq("id", member.id);
+    if (error) return databaseError("Could not rename member", error);
+    await loadData();
+    msg(`Member renamed from ${oldName} to ${newName}.`);
+}
+
+async function deleteMember(member) {
+    if (!confirm(`Delete ${member.name} and all flowers?`)) return;
+
+    const { error: flowerError } = await supabaseClient.from("flowers").delete().eq("member_id", member.id);
+    if (flowerError) return databaseError("Could not delete the member's flowers", flowerError);
+
+    const { error: memberError } = await supabaseClient.from("members").delete().eq("id", member.id);
+    if (memberError) return databaseError("Could not delete member", memberError);
+
+    await loadData();
+    msg(`Member ${member.name} and all flower records deleted.`);
+}
+
+async function addFlower() {
+    const memberId = Number(document.getElementById("memberSelect").value);
+    const member = members.find(item => item.id === memberId);
+    const nameInput = document.getElementById("newFlower");
+    const flowerName = nameInput.value.trim();
+    const points = Number(document.getElementById("newPoints").value);
+    const bonus = Math.max(0, Number(document.getElementById("newBonus").value) || 0);
+
+    if (!member || !flowerName) return msg("Choose a member and enter a flower.", "error");
+    if (member.flowers.some(flower => normalize(flower[1]) === normalize(flowerName))) return msg("That member already has this flower.", "error");
+
+    const { error } = await supabaseClient.from("flowers").insert({
+        member_id: member.id,
+        flower_name: flowerName,
+        points,
+        bonus
+    });
+    if (error) return databaseError("Could not add flower", error);
+
+    nameInput.value = "";
+    document.getElementById("newBonus").value = "0";
+    await loadData();
+    msg(`Added ${flowerName} to ${member.name}.`);
+}
+
+async function updateFlower(member, flower, row) {
+    const controls = row.querySelectorAll("input,select");
+    const flowerName = controls[0].value.trim();
+    const points = Number(controls[1].value);
+    const bonus = Math.max(0, Number(controls[2].value) || 0);
+    const flowerId = flower[2];
+
+    if (!flowerName) return msg("Flower name cannot be blank.", "error");
+    if (member.flowers.some(item => item[2] !== flowerId && normalize(item[1]) === normalize(flowerName))) return msg("That member already has this flower.", "error");
+
+    const { error } = await supabaseClient.from("flowers").update({
+        flower_name: flowerName,
+        points,
+        bonus
+    }).eq("id", flowerId);
+    if (error) return databaseError("Could not update flower", error);
+
+    await loadData();
+    msg(`Flower ${flowerName} updated for ${member.name}.`);
+}
+
+async function deleteFlower(member, flower) {
+    if (!confirm(`Delete ${flower[1]}?`)) return;
+    const { error } = await supabaseClient.from("flowers").delete().eq("id", flower[2]);
+    if (error) return databaseError("Could not delete flower", error);
+    await loadData();
+    msg(`Flower ${flower[1]} deleted from ${member.name}.`);
+}
+
+async function deleteAllData() {
+    if (!confirm("Delete ALL members and flowers from the shared Supabase database? This cannot be undone.")) return;
+    if (!confirm("Final warning: delete the entire The Tea Room tracker database?")) return;
+
+    const { error: flowerError } = await supabaseClient.from("flowers").delete().gte("id", 0);
+    if (flowerError) return databaseError("Could not delete all flowers", flowerError);
+    const { error: memberError } = await supabaseClient.from("members").delete().gte("id", 0);
+    if (memberError) return databaseError("Could not delete all members", memberError);
+
+    await loadData();
+    msg("All shared tracker data was deleted.", "warning");
+}
+
+function renderAdmin() {
+    const box = document.getElementById("adminList");
+    if (!box) return;
+    box.innerHTML = "";
+
+    [...members].sort((a, b) => a.name.localeCompare(b.name)).forEach(member => {
+        const card = document.createElement("div");
+        card.className = "admin-member";
+
+        const head = document.createElement("div");
+        head.className = "admin-head";
+        const name = document.createElement("input");
+        name.value = member.name;
+        name.setAttribute("aria-label", "Member name");
+        const renameButton = document.createElement("button");
+        renameButton.className = "admin-btn";
+        renameButton.textContent = "Rename";
+        renameButton.onclick = () => renameMember(member, name.value);
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "admin-btn danger";
+        deleteButton.textContent = "Delete Member";
+        deleteButton.onclick = () => deleteMember(member);
+        head.append(name, renameButton, deleteButton);
+        card.appendChild(head);
+
+        member.flowers.forEach(flower => {
+            const row = document.createElement("div");
+            row.className = "admin-flower";
+
+            const flowerInput = document.createElement("input");
+            flowerInput.value = flower[1];
+            const pointsSelect = document.createElement("select");
+            [30, 28, 25, 23, 21].forEach(points => pointsSelect.add(new Option(String(points), String(points), false, points === flower[0])));
+            const bonusInput = document.createElement("input");
+            bonusInput.type = "number";
+            bonusInput.min = "0";
+            bonusInput.value = String(getAttributeBonus(member.name, flower[1]) || 0);
+            const saveButton = document.createElement("button");
+            saveButton.className = "admin-btn";
+            saveButton.textContent = "Save";
+            saveButton.onclick = () => updateFlower(member, flower, row);
+            const removeButton = document.createElement("button");
+            removeButton.className = "admin-btn danger";
+            removeButton.textContent = "Delete";
+            removeButton.onclick = () => deleteFlower(member, flower);
+
+            row.append(flowerInput, pointsSelect, bonusInput, saveButton, removeButton);
+            card.appendChild(row);
+        });
+        box.appendChild(card);
+    });
+}
+
+function getAttributeBonus(memberName, flowerName) {
+    const match = attributeBonuses.find(item => normalize(item.member) === normalize(memberName) && normalize(item.flower) === normalize(flowerName));
+    return match ? match.bonus : null;
+}
+
+function getMemberBonusTotal(member) {
+    return member.flowers.reduce((sum, [, flower]) => sum + (getAttributeBonus(member.name, flower) || 0), 0);
+}
+
+function getMemberAttributeCount(member) {
+    return member.flowers.filter(([, flower]) => getAttributeBonus(member.name, flower)).length;
+}
+
+function getEmoji(name) {
+    const lower = normalize(name);
+    if (lower.includes("cherri")) return "🍒";
+    if (lower.includes("peach")) return "🍑";
+    if (lower.includes("snow")) return "❄️";
+    if (lower.includes("bird")) return "🐦";
+    if (lower.includes("lily")) return "🌼";
+    if (lower.includes("rose")) return "🌹";
+    if (lower.includes("aqua")) return "🌊";
+    if (lower.includes("flower")) return "🌸";
+    if (lower.includes("secret")) return "🌿";
+    if (lower.includes("bree")) return "✨";
+    if (lower.includes("yuki")) return "🫖";
+    return "🌷";
+}
+
+function getFilteredFlowers(member) {
+    let filteredFlowers = [...member.flowers];
+    if (pointFilter.value !== "all") filteredFlowers = filteredFlowers.filter(([points]) => String(points) === pointFilter.value);
+    if (attributeFilter.value === "hasAttributes") filteredFlowers = filteredFlowers.filter(([, flower]) => getAttributeBonus(member.name, flower));
+    if (attributeFilter.value === "noAttributes") filteredFlowers = filteredFlowers.filter(([, flower]) => !getAttributeBonus(member.name, flower));
+    const sortType = flowerSort.value;
+    if (sortType === "pointsDesc") filteredFlowers.sort((a, b) => b[0] - a[0] || a[1].localeCompare(b[1]));
+    if (sortType === "pointsAsc") filteredFlowers.sort((a, b) => a[0] - b[0] || a[1].localeCompare(b[1]));
+    if (sortType === "nameAsc") filteredFlowers.sort((a, b) => a[1].localeCompare(b[1]) || b[0] - a[0]);
+    if (sortType === "nameDesc") filteredFlowers.sort((a, b) => b[1].localeCompare(a[1]) || b[0] - a[0]);
+    if (sortType === "bonusDesc") filteredFlowers.sort((a, b) => (getAttributeBonus(member.name, b[1]) || 0) - (getAttributeBonus(member.name, a[1]) || 0) || b[0] - a[0] || a[1].localeCompare(b[1]));
+    return filteredFlowers;
+}
+
+function getSortedMembers(list) {
+    const sorted = [...list];
+    const sortType = memberSort.value;
+    if (sortType === "nameAsc") sorted.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortType === "nameDesc") sorted.sort((a, b) => b.name.localeCompare(a.name));
+    if (sortType === "countDesc") sorted.sort((a, b) => b.flowers.length - a.flowers.length || a.name.localeCompare(b.name));
+    if (sortType === "countAsc") sorted.sort((a, b) => a.flowers.length - b.flowers.length || a.name.localeCompare(b.name));
+    if (sortType === "bonusDesc") sorted.sort((a, b) => getMemberBonusTotal(b) - getMemberBonusTotal(a) || a.name.localeCompare(b.name));
+    return sorted;
+}
+
+function renderMembers() {
+    const search = normalize(searchInput.value);
+    let filteredMembers = members.filter(member => {
+        const flowerText = member.flowers.map(flower => flower.join(" ")).join(" ");
+        const searchableText = normalize(member.name + " " + flowerText);
+        const searchMatch = searchableText.includes(search);
+        const pointMatch = pointFilter.value === "all" || member.flowers.some(([points]) => String(points) === pointFilter.value);
+        const attributeMatch = attributeFilter.value === "all" ||
+            (attributeFilter.value === "hasAttributes" && getMemberAttributeCount(member) > 0) ||
+            (attributeFilter.value === "noAttributes" && member.flowers.some(([, flower]) => !getAttributeBonus(member.name, flower)));
+        return searchMatch && pointMatch && attributeMatch;
+    });
+    filteredMembers = getSortedMembers(filteredMembers);
+    grid.innerHTML = "";
+
+    filteredMembers.forEach(member => {
+        const shownFlowers = getFilteredFlowers(member);
+        if (!shownFlowers.length) return;
+        const card = document.createElement("article");
+        card.className = "member-card";
+        const attrCount = getMemberAttributeCount(member);
+        const bonusTotal = getMemberBonusTotal(member);
+        if (attrCount) card.classList.add("member-has-attributes");
+
+        const header = document.createElement("div");
+        header.className = "member-header";
+        const title = document.createElement("h2");
+        title.className = "member-name";
+        title.textContent = `${getEmoji(member.name)} ${member.name}`;
+        const count = document.createElement("span");
+        count.className = "count-pill";
+        count.textContent = `${shownFlowers.length} item${shownFlowers.length === 1 ? "" : "s"}`;
+        header.append(title, count);
+        card.appendChild(header);
+
+        if (member.notes?.length) {
+            const note = document.createElement("div");
+            note.className = "attribute-summary";
+            note.textContent = "📝 " + member.notes.join(" • ");
+            card.appendChild(note);
+        }
+        if (attrCount) {
+            const summary = document.createElement("div");
+            summary.className = "attribute-summary";
+            summary.textContent = `✨ ${attrCount} attribute flower${attrCount === 1 ? "" : "s"} | +${bonusTotal} total bonus`;
+            card.appendChild(summary);
+        }
+
+        const list = document.createElement("ul");
+        shownFlowers.forEach(([points, flower]) => {
+            const bonus = getAttributeBonus(member.name, flower);
+            const item = document.createElement("li");
+            if (bonus) item.classList.add("has-attribute");
+            const tag = document.createElement("span");
+            tag.className = `tag r${points}`;
+            tag.textContent = points;
+            const flowerName = document.createElement("span");
+            flowerName.textContent = flower;
+            item.append(tag, flowerName);
+            if (bonus) {
+                const badge = document.createElement("span");
+                badge.className = "attribute-badge";
+                badge.textContent = `+${bonus}`;
+                const label = document.createElement("span");
+                label.className = "attribute-label";
+                label.textContent = `${points}+${bonus} = ${points + bonus}`;
+                item.append(badge, label);
+            }
+            list.appendChild(item);
+        });
+        card.appendChild(list);
+        grid.appendChild(card);
+    });
+
+    emptyMessage.style.display = grid.children.length ? "none" : "block";
+    updateStats();
+}
+
+function updateStats() {
+    const allFlowers = members.flatMap(member => member.flowers.map(flower => ({ member: member.name, points: flower[0], flower: flower[1] })));
+    const uniqueFlowers = new Set(allFlowers.map(item => normalize(item.flower)));
+    const attributeMatches = allFlowers.filter(item => getAttributeBonus(item.member, item.flower));
+    const highestCount = members.length ? Math.max(...members.map(member => member.flowers.length)) : 0;
+    document.getElementById("memberCount").textContent = members.length;
+    document.getElementById("flowerCount").textContent = allFlowers.length;
+    document.getElementById("uniqueCount").textContent = uniqueFlowers.size;
+    document.getElementById("attributeCount").textContent = attributeMatches.length;
+    document.getElementById("topCount").textContent = highestCount;
+}
+
+function renderCommonFlowers() {
+    const counts = {};
+    members.forEach(member => member.flowers.forEach(([points, flower]) => {
+        const key = normalize(flower);
+        counts[key] = counts[key] || { flower, points, count: 0 };
+        counts[key].count += 1;
+    }));
+    const common = Object.values(counts).sort((a, b) => b.count - a.count || b.points - a.points || a.flower.localeCompare(b.flower)).slice(0, 12);
+    const container = document.getElementById("commonFlowers");
+    container.innerHTML = "";
+    common.forEach(item => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = `${item.flower} - ${item.count}`;
+        container.appendChild(chip);
+    });
+}
+
+function renderOwnerLookup() {
+    const query = normalize(ownerLookup.value);
+    ownerResults.innerHTML = "";
+    if (!query) {
+        const hint = document.createElement("div");
+        hint.className = "owner-row";
+        hint.textContent = "Start typing a flower name to see matching members.";
+        ownerResults.appendChild(hint);
+        return;
+    }
+    const matches = [];
+    members.forEach(member => member.flowers.forEach(([points, flower]) => {
+        if (normalize(flower).includes(query)) matches.push({ member: member.name, flower, points, bonus: getAttributeBonus(member.name, flower) || 0 });
+    }));
+    if (!matches.length) {
+        const none = document.createElement("div");
+        none.className = "owner-row";
+        none.textContent = "No matching flower owners found.";
+        ownerResults.appendChild(none);
+        return;
+    }
+    matches.sort((a, b) => b.bonus - a.bonus || b.points - a.points || a.member.localeCompare(b.member)).forEach(match => {
+        const row = document.createElement("div");
+        row.className = match.bonus ? "owner-row has-attribute-row" : "owner-row";
+        row.textContent = match.bonus ? `${match.member} has ${match.points} - ${match.flower} (+${match.bonus}, total ${match.points + match.bonus})` : `${match.member} has ${match.points} - ${match.flower}`;
+        ownerResults.appendChild(row);
+    });
+}
+
+document.getElementById("adminToggle").onclick = () => {
+    const login = document.getElementById("adminLogin");
+    login.hidden = !login.hidden;
+};
+document.getElementById("adminUnlock").onclick = () => {
+    if (document.getElementById("adminPassword").value !== ADMIN_PASSWORD) return msg("Incorrect password", "error");
+    document.getElementById("adminLogin").hidden = true;
+    document.getElementById("adminPanel").classList.add("open");
+    refreshAll();
+};
+document.getElementById("adminLock").onclick = () => document.getElementById("adminPanel").classList.remove("open");
+document.getElementById("addMember").onclick = addMember;
+document.getElementById("addFlower").onclick = addFlower;
+document.getElementById("resetData").textContent = "Delete All Shared Data";
+document.getElementById("resetData").onclick = deleteAllData;
+document.querySelectorAll(".admin-tab").forEach(tab => tab.onclick = () => {
+    document.querySelectorAll(".admin-tab,.admin-view").forEach(item => item.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("view-" + tab.dataset.view).classList.add("active");
+    renderAdmin();
+});
+
+searchInput.addEventListener("input", renderMembers);
+pointFilter.addEventListener("change", renderMembers);
+attributeFilter.addEventListener("change", renderMembers);
+memberSort.addEventListener("change", renderMembers);
+flowerSort.addEventListener("change", renderMembers);
+ownerLookup.addEventListener("input", renderOwnerLookup);
+
+async function initialiseTracker() {
+    if (SUPABASE_KEY.includes("INSERT_YOUR") || SUPABASE_URL.includes("INSERT_YOUR")) {
+        showToast("Insert your new Supabase project URL and publishable key into index.html first.", "error");
+        refreshAll();
+        return;
+    }
+    await loadData();
+}
+
+initialiseTracker();
+</script>
+</body>
+</html>
